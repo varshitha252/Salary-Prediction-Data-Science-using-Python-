@@ -1,0 +1,256 @@
+In [2]:
+import numpy as np # np is short for numpy
+import pandas as pd # pandas is so commonly used, it's shortened to pd
+import matplotlib.pyplot as plt
+import seaborn as sns # seaborn gets shortened to sns
+​
+# We want our plots to appear in the notebook
+%matplotlib inline 
+​
+## Models
+from sklearn.linear_model import LogisticRegression
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.ensemble import RandomForestClassifier
+​
+## Model evaluators
+from sklearn.model_selection import train_test_split, cross_val_score, learning_curve
+from sklearn.model_selection import RandomizedSearchCV, GridSearchCV
+from sklearn.metrics import confusion_matrix, classification_report, accuracy_score
+from sklearn.metrics import precision_score, recall_score, f1_score
+from sklearn.metrics import plot_roc_curve
+In [4]:
+df = pd.read_csv('voice.csv')
+In [5]:
+df.columns
+Out[5]:
+Index(['meanfreq', 'sd', 'median', 'Q25', 'Q75', 'IQR', 'skew', 'kurt',
+       'sp.ent', 'sfm', 'mode', 'centroid', 'meanfun', 'minfun', 'maxfun',
+       'meandom', 'mindom', 'maxdom', 'dfrange', 'modindx', 'label'],
+      dtype='object')
+In [7]:
+df.head(10)
+Out[7]:
+meanfreq	sd	median	Q25	Q75	IQR	skew	kurt	sp.ent	sfm	...	centroid	meanfun	minfun	maxfun	meandom	mindom	maxdom	dfrange	modindx	label
+0	0.059781	0.064241	0.032027	0.015071	0.090193	0.075122	12.863462	274.402906	0.893369	0.491918	...	0.059781	0.084279	0.015702	0.275862	0.007812	0.007812	0.007812	0.000000	0.000000	male
+1	0.066009	0.067310	0.040229	0.019414	0.092666	0.073252	22.423285	634.613855	0.892193	0.513724	...	0.066009	0.107937	0.015826	0.250000	0.009014	0.007812	0.054688	0.046875	0.052632	male
+2	0.077316	0.083829	0.036718	0.008701	0.131908	0.123207	30.757155	1024.927705	0.846389	0.478905	...	0.077316	0.098706	0.015656	0.271186	0.007990	0.007812	0.015625	0.007812	0.046512	male
+3	0.151228	0.072111	0.158011	0.096582	0.207955	0.111374	1.232831	4.177296	0.963322	0.727232	...	0.151228	0.088965	0.017798	0.250000	0.201497	0.007812	0.562500	0.554688	0.247119	male
+4	0.135120	0.079146	0.124656	0.078720	0.206045	0.127325	1.101174	4.333713	0.971955	0.783568	...	0.135120	0.106398	0.016931	0.266667	0.712812	0.007812	5.484375	5.476562	0.208274	male
+5	0.132786	0.079557	0.119090	0.067958	0.209592	0.141634	1.932562	8.308895	0.963181	0.738307	...	0.132786	0.110132	0.017112	0.253968	0.298222	0.007812	2.726562	2.718750	0.125160	male
+6	0.150762	0.074463	0.160106	0.092899	0.205718	0.112819	1.530643	5.987498	0.967573	0.762638	...	0.150762	0.105945	0.026230	0.266667	0.479620	0.007812	5.312500	5.304688	0.123992	male
+7	0.160514	0.076767	0.144337	0.110532	0.231962	0.121430	1.397156	4.766611	0.959255	0.719858	...	0.160514	0.093052	0.017758	0.144144	0.301339	0.007812	0.539062	0.531250	0.283937	male
+8	0.142239	0.078018	0.138587	0.088206	0.208587	0.120381	1.099746	4.070284	0.970723	0.770992	...	0.142239	0.096729	0.017957	0.250000	0.336476	0.007812	2.164062	2.156250	0.148272	male
+9	0.134329	0.080350	0.121451	0.075580	0.201957	0.126377	1.190368	4.787310	0.975246	0.804505	...	0.134329	0.105881	0.019300	0.262295	0.340365	0.015625	4.695312	4.679688	0.089920	male
+10 rows × 21 columns
+
+In [8]:
+from IPython.core.display import HTML # permet d'afficher du code html dans jupyter
+display(HTML(df.head(10).to_html()))
+meanfreq	sd	median	Q25	Q75	IQR	skew	kurt	sp.ent	sfm	mode	centroid	meanfun	minfun	maxfun	meandom	mindom	maxdom	dfrange	modindx	label
+0	0.059781	0.064241	0.032027	0.015071	0.090193	0.075122	12.863462	274.402906	0.893369	0.491918	0.000000	0.059781	0.084279	0.015702	0.275862	0.007812	0.007812	0.007812	0.000000	0.000000	male
+1	0.066009	0.067310	0.040229	0.019414	0.092666	0.073252	22.423285	634.613855	0.892193	0.513724	0.000000	0.066009	0.107937	0.015826	0.250000	0.009014	0.007812	0.054688	0.046875	0.052632	male
+2	0.077316	0.083829	0.036718	0.008701	0.131908	0.123207	30.757155	1024.927705	0.846389	0.478905	0.000000	0.077316	0.098706	0.015656	0.271186	0.007990	0.007812	0.015625	0.007812	0.046512	male
+3	0.151228	0.072111	0.158011	0.096582	0.207955	0.111374	1.232831	4.177296	0.963322	0.727232	0.083878	0.151228	0.088965	0.017798	0.250000	0.201497	0.007812	0.562500	0.554688	0.247119	male
+4	0.135120	0.079146	0.124656	0.078720	0.206045	0.127325	1.101174	4.333713	0.971955	0.783568	0.104261	0.135120	0.106398	0.016931	0.266667	0.712812	0.007812	5.484375	5.476562	0.208274	male
+5	0.132786	0.079557	0.119090	0.067958	0.209592	0.141634	1.932562	8.308895	0.963181	0.738307	0.112555	0.132786	0.110132	0.017112	0.253968	0.298222	0.007812	2.726562	2.718750	0.125160	male
+6	0.150762	0.074463	0.160106	0.092899	0.205718	0.112819	1.530643	5.987498	0.967573	0.762638	0.086197	0.150762	0.105945	0.026230	0.266667	0.479620	0.007812	5.312500	5.304688	0.123992	male
+7	0.160514	0.076767	0.144337	0.110532	0.231962	0.121430	1.397156	4.766611	0.959255	0.719858	0.128324	0.160514	0.093052	0.017758	0.144144	0.301339	0.007812	0.539062	0.531250	0.283937	male
+8	0.142239	0.078018	0.138587	0.088206	0.208587	0.120381	1.099746	4.070284	0.970723	0.770992	0.219103	0.142239	0.096729	0.017957	0.250000	0.336476	0.007812	2.164062	2.156250	0.148272	male
+9	0.134329	0.080350	0.121451	0.075580	0.201957	0.126377	1.190368	4.787310	0.975246	0.804505	0.011699	0.134329	0.105881	0.019300	0.262295	0.340365	0.015625	4.695312	4.679688	0.089920	male
+In [9]:
+df.shape
+Out[9]:
+(3168, 21)
+In [10]:
+df.info()
+<class 'pandas.core.frame.DataFrame'>
+RangeIndex: 3168 entries, 0 to 3167
+Data columns (total 21 columns):
+ #   Column    Non-Null Count  Dtype  
+---  ------    --------------  -----  
+ 0   meanfreq  3168 non-null   float64
+ 1   sd        3168 non-null   float64
+ 2   median    3168 non-null   float64
+ 3   Q25       3168 non-null   float64
+ 4   Q75       3168 non-null   float64
+ 5   IQR       3168 non-null   float64
+ 6   skew      3168 non-null   float64
+ 7   kurt      3168 non-null   float64
+ 8   sp.ent    3168 non-null   float64
+ 9   sfm       3168 non-null   float64
+ 10  mode      3168 non-null   float64
+ 11  centroid  3168 non-null   float64
+ 12  meanfun   3168 non-null   float64
+ 13  minfun    3168 non-null   float64
+ 14  maxfun    3168 non-null   float64
+ 15  meandom   3168 non-null   float64
+ 16  mindom    3168 non-null   float64
+ 17  maxdom    3168 non-null   float64
+ 18  dfrange   3168 non-null   float64
+ 19  modindx   3168 non-null   float64
+ 20  label     3168 non-null   object 
+dtypes: float64(20), object(1)
+memory usage: 519.9+ KB
+In [11]:
+df.describe()
+Out[11]:
+meanfreq	sd	median	Q25	Q75	IQR	skew	kurt	sp.ent	sfm	mode	centroid	meanfun	minfun	maxfun	meandom	mindom	maxdom	dfrange	modindx
+count	3168.000000	3168.000000	3168.000000	3168.000000	3168.000000	3168.000000	3168.000000	3168.000000	3168.000000	3168.000000	3168.000000	3168.000000	3168.000000	3168.000000	3168.000000	3168.000000	3168.000000	3168.000000	3168.000000	3168.000000
+mean	0.180907	0.057126	0.185621	0.140456	0.224765	0.084309	3.140168	36.568461	0.895127	0.408216	0.165282	0.180907	0.142807	0.036802	0.258842	0.829211	0.052647	5.047277	4.994630	0.173752
+std	0.029918	0.016652	0.036360	0.048680	0.023639	0.042783	4.240529	134.928661	0.044980	0.177521	0.077203	0.029918	0.032304	0.019220	0.030077	0.525205	0.063299	3.521157	3.520039	0.119454
+min	0.039363	0.018363	0.010975	0.000229	0.042946	0.014558	0.141735	2.068455	0.738651	0.036876	0.000000	0.039363	0.055565	0.009775	0.103093	0.007812	0.004883	0.007812	0.000000	0.000000
+25%	0.163662	0.041954	0.169593	0.111087	0.208747	0.042560	1.649569	5.669547	0.861811	0.258041	0.118016	0.163662	0.116998	0.018223	0.253968	0.419828	0.007812	2.070312	2.044922	0.099766
+50%	0.184838	0.059155	0.190032	0.140286	0.225684	0.094280	2.197101	8.318463	0.901767	0.396335	0.186599	0.184838	0.140519	0.046110	0.271186	0.765795	0.023438	4.992188	4.945312	0.139357
+75%	0.199146	0.067020	0.210618	0.175939	0.243660	0.114175	2.931694	13.648905	0.928713	0.533676	0.221104	0.199146	0.169581	0.047904	0.277457	1.177166	0.070312	7.007812	6.992188	0.209183
+max	0.251124	0.115273	0.261224	0.247347	0.273469	0.252225	34.725453	1309.612887	0.981997	0.842936	0.280000	0.251124	0.237636	0.204082	0.279114	2.957682	0.458984	21.867188	21.843750	0.932374
+In [12]:
+df.label.value_counts()
+Out[12]:
+male      1584
+female    1584
+Name: label, dtype: int64
+In [13]:
+sns.jointplot("meanfreq", "sd", df, kind='kde');
+C:\Users\HP\anaconda3\lib\site-packages\seaborn\_decorators.py:36: FutureWarning: Pass the following variables as keyword args: x, y, data. From version 0.12, the only valid positional argument will be `data`, and passing other arguments without an explicit keyword will result in an error or misinterpretation.
+  warnings.warn(
+
+In [14]:
+df_corr_matrix = df.corr()
+fig, ax = plt.subplots(figsize=(15, 15))
+ax = sns.heatmap(df_corr_matrix,
+                annot = True,
+                cmap="Blues")
+
+In [15]:
+sns.scatterplot(x='median',y='meanfreq',data=df,hue='label',palette='coolwarm')
+plt.xlim(0,0.3)
+plt.ylim(0,0.3)
+plt.show()
+
+In [16]:
+sns.scatterplot(x='Q25',y='meanfreq',data=df,hue='label',palette='coolwarm')
+plt.xlim(0,0.3)
+plt.ylim(0,0.3)
+plt.show()
+
+In [17]:
+sns.scatterplot(x='Q75',y='meanfreq',data=df,hue='label',palette='coolwarm')
+plt.xlim(0,0.3)
+plt.ylim(0,0.3)
+plt.show()
+
+In [18]:
+sns.scatterplot(x='IQR',y='sd',data=df,hue='label',palette='coolwarm')
+plt.xlim(0,0.3)
+plt.ylim(0,0.15)
+plt.show()
+
+In [19]:
+sns.scatterplot(x='sfm',y='sd',data=df,hue='label',palette='coolwarm')
+plt.xlim(0,1)
+plt.ylim(0,0.15)
+plt.show()
+
+In [36]:
+sns.violinplot(x="label", y="meanfreq", data=df)
+Out[36]:
+<AxesSubplot:xlabel='label', ylabel='meanfreq'>
+
+In [35]:
+sns.pairplot(df, hue="label")
+Out[35]:
+<seaborn.axisgrid.PairGrid at 0x2ad0efb6190>
+
+In [33]:
+fig = sns.FacetGrid(df, hue="label", aspect=3, palette="Set2") # aspect=3 permet d'allonger le graphique
+fig.map(sns.kdeplot, "meanfreq", shade=True)
+fig.add_legend()
+Out[33]:
+<seaborn.axisgrid.FacetGrid at 0x2ad65cadb80>
+
+In [37]:
+df.replace("male", 0 , inplace = True)
+df.replace("female", 1 , inplace = True)
+​
+In [38]:
+df
+Out[38]:
+meanfreq	sd	median	Q25	Q75	IQR	skew	kurt	sp.ent	sfm	...	centroid	meanfun	minfun	maxfun	meandom	mindom	maxdom	dfrange	modindx	label
+0	0.059781	0.064241	0.032027	0.015071	0.090193	0.075122	12.863462	274.402906	0.893369	0.491918	...	0.059781	0.084279	0.015702	0.275862	0.007812	0.007812	0.007812	0.000000	0.000000	0
+1	0.066009	0.067310	0.040229	0.019414	0.092666	0.073252	22.423285	634.613855	0.892193	0.513724	...	0.066009	0.107937	0.015826	0.250000	0.009014	0.007812	0.054688	0.046875	0.052632	0
+2	0.077316	0.083829	0.036718	0.008701	0.131908	0.123207	30.757155	1024.927705	0.846389	0.478905	...	0.077316	0.098706	0.015656	0.271186	0.007990	0.007812	0.015625	0.007812	0.046512	0
+3	0.151228	0.072111	0.158011	0.096582	0.207955	0.111374	1.232831	4.177296	0.963322	0.727232	...	0.151228	0.088965	0.017798	0.250000	0.201497	0.007812	0.562500	0.554688	0.247119	0
+4	0.135120	0.079146	0.124656	0.078720	0.206045	0.127325	1.101174	4.333713	0.971955	0.783568	...	0.135120	0.106398	0.016931	0.266667	0.712812	0.007812	5.484375	5.476562	0.208274	0
+...	...	...	...	...	...	...	...	...	...	...	...	...	...	...	...	...	...	...	...	...	...
+3163	0.131884	0.084734	0.153707	0.049285	0.201144	0.151859	1.762129	6.630383	0.962934	0.763182	...	0.131884	0.182790	0.083770	0.262295	0.832899	0.007812	4.210938	4.203125	0.161929	1
+3164	0.116221	0.089221	0.076758	0.042718	0.204911	0.162193	0.693730	2.503954	0.960716	0.709570	...	0.116221	0.188980	0.034409	0.275862	0.909856	0.039062	3.679688	3.640625	0.277897	1
+3165	0.142056	0.095798	0.183731	0.033424	0.224360	0.190936	1.876502	6.604509	0.946854	0.654196	...	0.142056	0.209918	0.039506	0.275862	0.494271	0.007812	2.937500	2.929688	0.194759	1
+3166	0.143659	0.090628	0.184976	0.043508	0.219943	0.176435	1.591065	5.388298	0.950436	0.675470	...	0.143659	0.172375	0.034483	0.250000	0.791360	0.007812	3.593750	3.585938	0.311002	1
+3167	0.165509	0.092884	0.183044	0.070072	0.250827	0.180756	1.705029	5.769115	0.938829	0.601529	...	0.165509	0.185607	0.062257	0.271186	0.227022	0.007812	0.554688	0.546875	0.350000	1
+3168 rows × 21 columns
+
+In [39]:
+X = df.drop("label" , axis = 1).values
+y = df['label'].values
+In [40]:
+X
+Out[40]:
+array([[0.05978098, 0.06424127, 0.03202691, ..., 0.0078125 , 0.        ,
+        0.        ],
+       [0.06600874, 0.06731003, 0.04022873, ..., 0.0546875 , 0.046875  ,
+        0.05263158],
+       [0.0773155 , 0.08382942, 0.03671846, ..., 0.015625  , 0.0078125 ,
+        0.04651163],
+       ...,
+       [0.14205626, 0.09579843, 0.18373124, ..., 2.9375    , 2.9296875 ,
+        0.19475862],
+       [0.14365874, 0.09062826, 0.18497617, ..., 3.59375   , 3.5859375 ,
+        0.31100218],
+       [0.16550895, 0.09288354, 0.18304392, ..., 0.5546875 , 0.546875  ,
+        0.35      ]])
+In [42]:
+y
+Out[42]:
+array([0, 0, 0, ..., 1, 1, 1], dtype=int64)
+In [43]:
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.20, random_state=1)
+In [44]:
+print(X_train.shape)
+print(X_test.shape)
+print(y_train.shape)
+print(y_test.shape)
+(2534, 20)
+(634, 20)
+(2534,)
+(634,)
+In [45]:
+from sklearn.preprocessing import StandardScaler
+scale = StandardScaler ()
+X_train = scale.fit_transform(X_train)
+X_test = scale.fit_transform(X_test)
+In [46]:
+lr = LogisticRegression()
+lr.fit(X_train,y_train)
+Out[46]:
+LogisticRegression()
+In [47]:
+y_lr = lr.predict(X_test)
+​
+In [48]:
+​
+lr_score = accuracy_score(y_test, y_lr)
+print(lr_score)
+0.9700315457413249
+In [49]:
+cm = confusion_matrix(y_test, y_lr)
+print(cm)
+[[314   9]
+ [ 10 301]]
+In [50]:
+pd.crosstab(y_test, y_lr, rownames=['Reel'], colnames=['Prediction'], margins=True)
+Out[50]:
+Prediction	0	1	All
+Reel			
+0	314	9	323
+1	10	301	311
+All	324	310	634
